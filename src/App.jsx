@@ -9,11 +9,6 @@ const db = {
   },
 };
 
-// ── Resend email config ─────────────────────────────────────────────────
-const RESEND_API_KEY = "re_N5Emsvu2_K6LcWP6VHgsi6XbUrXxWdeZP";
-const EMAIL_FROM = "KiTrac <kitrac@kernlbooks.com>";
-const EMAIL_TO = ["g.duff@gd7.co", "danieljohnjames@hotmail.co.uk"];
-
 const C = {
   navy: "#0B1F3A", teal: "#00C4A0", tealDim: "#009E82",
   amber: "#FFB347", muted: "#7A8A9A", white: "#FFFFFF", danger: "#FF5A5A",
@@ -212,12 +207,10 @@ export default function KiTrac() {
       </div>`;
 
     try {
-      const res = await fetch("https://api.resend.com/emails", {
+      const res = await fetch("/api/send-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: EMAIL_FROM,
-          to: EMAIL_TO,
           subject: `KiTrac Alert: ${form.item} found at ${form.school}`,
           html: html,
         }),
