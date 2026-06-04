@@ -10,7 +10,7 @@ const db = {
 };
 
 // ── Resend email config ─────────────────────────────────────────────────
-const RESEND_API_KEY = "PASTE_YOUR_RESEND_API_KEY_HERE";
+const RESEND_API_KEY = "re_N5Emsvu2_K6LcWP6VHgsi6XbUrXxWdeZP";
 const EMAIL_FROM = "KiTrac <kitrac@kernlbooks.com>";
 const EMAIL_TO = ["g.duff@gd7.co", "danieljohnjames@hotmail.co.uk"];
 
