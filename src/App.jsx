@@ -9,6 +9,11 @@ const db = {
   },
 };
 
+// ── Resend email config ─────────────────────────────────────────────────
+const RESEND_API_KEY = "PASTE_YOUR_RESEND_API_KEY_HERE";
+const EMAIL_FROM = "KiTrac <kitrac@kernlbooks.com>";
+const EMAIL_TO = ["g.duff@gd7.co", "danieljohnjames@hotmail.co.uk"];
+
 const C = {
   navy: "#0B1F3A", teal: "#00C4A0", tealDim: "#009E82",
   amber: "#FFB347", muted: "#7A8A9A", white: "#FFFFFF", danger: "#FF5A5A",
@@ -165,7 +170,64 @@ export default function KiTrac() {
     if (whereChoice === "withme" && !finderContact.trim()) e.where = "Please enter a phone number or email so the parent can reach you";
     if (Object.keys(e).length) { setErrors(e); return; }
     setPhase("submitting");
-    await new Promise(r => setTimeout(r, 1400));
+
+    // Build the where description
+    const whereTxt = whereChoice === "lostproperty" ? "Left at lost property"
+      : whereChoice === "withme" ? `I have it — contact me${finderName ? ` (${finderName})` : ""}${finderContact ? `: ${finderContact}` : ""}`
+      : whereChoice === "other" ? (otherWhere || "Other location") : "Unknown";
+
+    const locTxt = location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : "Not captured";
+    const time = new Date().toLocaleString("en-GB");
+
+    // Build HTML email
+    const html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0B1F3A;border-radius:16px;padding:28px 24px;color:#FFFFFF;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#00C4A0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:#0B1F3A;">KT</div>
+          <div>
+            <div style="font-size:22px;font-weight:700;">KiTrac Alert</div>
+            <div style="font-size:12px;color:#00C4A0;">Someone found your child's item!</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:18px;margin-bottom:16px;">
+          <table style="width:100%;border-collapse:collapse;color:#C8D4E0;font-size:14px;">
+            <tr><td style="padding:6px 0;color:#7A8A9A;">Item ID</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${itemId}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">School / Club</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${form.school}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">Town / Postcode</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${form.town}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">Item Description</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${form.item}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">Where is it?</td><td style="padding:6px 0;font-weight:600;color:#00C4A0;">${whereTxt}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">GPS Location</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${locTxt}</td></tr>
+            <tr><td style="padding:6px 0;color:#7A8A9A;">Scanned at</td><td style="padding:6px 0;font-weight:600;color:#FFFFFF;">${time}</td></tr>
+          </table>
+        </div>
+        ${finderName || finderContact ? `
+        <div style="background:rgba(0,196,160,0.1);border:1px solid rgba(0,196,160,0.25);border-radius:12px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:12px;color:#00C4A0;font-weight:600;margin-bottom:6px;">Finder Contact Details</div>
+          ${finderName ? `<div style="font-size:14px;color:#FFFFFF;">Name: <strong>${finderName}</strong></div>` : ""}
+          ${finderContact ? `<div style="font-size:14px;color:#FFFFFF;">Contact: <strong>${finderContact}</strong></div>` : ""}
+        </div>` : ""}
+        <div style="font-size:11px;color:#4A6A8A;text-align:center;margin-top:16px;">
+          KiTrac · Child Kit Safety · This is an automated alert from the KiTrac prototype.
+        </div>
+      </div>`;
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
+        body: JSON.stringify({
+          from: EMAIL_FROM,
+          to: EMAIL_TO,
+          subject: `KiTrac Alert: ${form.item} found at ${form.school}`,
+          html: html,
+        }),
+      });
+      const data = await res.json();
+      console.log("[KiTrac] Email sent:", data);
+    } catch (err) {
+      console.error("[KiTrac] Email failed:", err);
+    }
+
     db.log("report", { itemId, form, whereChoice, otherWhere, finderName, finderContact, location });
     setPhase("done");
   };
